@@ -69,19 +69,52 @@ async function installPackageVersion(
     case 'nodejs':
       await installNpmPackageVersion(wd, opts)
       break
+    case 'python':
+      await installPipPackageVersion(wd, opts)
+      break
   }
 }
 
 async function installNpmPackageVersion(
-  wd: string,
+  cwd: string,
   opts: VerifyReleaseOptions
 ): Promise<void> {
-  const shellOpts = { cwd: wd }
   const packageRef = `@${opts.publisher}/${opts.provider}`
   core.debug(`Removing any existing npm package: ${packageRef}`)
-  shell.exec(`npm remove ${packageRef}`, shellOpts)
+  shell.exec(`npm remove ${packageRef}`, { cwd })
 
   const packageVersionRef = `${packageRef}@${opts.providerVersion}`
   core.debug(`Installing npm package: ${packageVersionRef}`)
-  shell.exec(`npm install ${packageVersionRef}`, shellOpts)
+  shell.exec(`npm install ${packageVersionRef}`, { cwd, fatal: true })
+}
+
+async function installPipPackageVersion(
+  cwd: string,
+  opts: VerifyReleaseOptions
+): Promise<void> {
+  const packageRef = `${opts.publisher}-${opts.provider}`
+  const vEnvCmd = `python3 -m venv venv`
+  core.debug(`Creating virtualenv: ${vEnvCmd}`)
+  if (shell.exec(vEnvCmd, { cwd, fatal: true }).code !== 0) {
+    throw new Error('Failed to create virtualenv')
+  }
+
+  const uninstallCmd = `./venv/bin/pip uninstall -y ${packageRef}`
+  core.debug(`Removing any existing pip package: ${uninstallCmd}`)
+  if (shell.exec(uninstallCmd, { cwd }).code !== 0) {
+    core.debug(`Failed to uninstall ${packageRef}`)
+  }
+
+  const packageVersionRef = `${packageRef}==${opts.providerVersion}`
+  const installCmd = `./venv/bin/pip install ${packageVersionRef}`
+  core.debug(`Installing pip package: ${installCmd}`)
+  if (shell.exec(installCmd, { cwd, fatal: true }).code !== 0) {
+    throw new Error(`Failed to install ${packageVersionRef}`)
+  }
+
+  const installReqCmd = `./venv/bin/pip install -r requirements.txt`
+  core.debug(`Installing requirements.txt: installReqCmd`)
+  if (shell.exec(installReqCmd, { cwd, fatal: true }).code !== 0) {
+    throw new Error(`Failed to install requirements.txt`)
+  }
 }

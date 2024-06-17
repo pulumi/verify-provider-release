@@ -60,3 +60,11 @@ jobs:
           directory: __tests__/programs/random-nodejs
           provider: random
           providerVersion: '4.16.2'
+
+      - name: Test Local Action for python
+        uses: ./
+        with:
+          language: python
+          directory: __tests__/programs/random-python
+          provider: random
+          providerVersion: '4.16.2'

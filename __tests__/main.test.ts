@@ -21,7 +21,7 @@ let setOutputMock: jest.SpiedFunction<typeof core.setOutput>
 
 describe('action', () => {
   // Increase the Jest timeout to 30 seconds as we're download dependencies
-  jest.setTimeout(30 * 1000)
+  jest.setTimeout(120 * 1000)
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -33,7 +33,7 @@ describe('action', () => {
     setOutputMock = jest.spyOn(core, 'setOutput').mockImplementation()
   })
 
-  it('valid setup', async () => {
+  it('nodejs setup', async () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
@@ -41,6 +41,34 @@ describe('action', () => {
           return 'nodejs'
         case 'directory':
           return '__tests__/programs/random-nodejs'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return '4.16.2'
+        case 'publisher':
+          return 'pulumi'
+        default:
+          return ''
+      }
+    })
+
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    expect(setFailedMock).not.toHaveBeenCalled()
+    expect(errorMock).not.toHaveBeenCalled()
+    expect(debugMock).toHaveBeenCalled()
+    expect(setOutputMock).toHaveBeenCalledTimes(0)
+  })
+
+  it('python setup', async () => {
+    // Set the action's inputs as return values from core.getInput()
+    getInputMock.mockImplementation(name => {
+      switch (name) {
+        case 'language':
+          return 'python'
+        case 'directory':
+          return '__tests__/programs/random-python'
         case 'provider':
           return 'random'
         case 'providerVersion':
