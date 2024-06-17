@@ -1,23 +1,34 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Verify Pulumi Provider Release'
+description: 'Verifies that a published provider is usable'
+author: 'Pulumi'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: 'heart'
-  color: 'red'
+  icon: 'check-circle'
+  color: 'purple'
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  language:
+    description:
+      The language to test against. One of `nodejs`, `python`, `dotnet`, `go` or
+      `java`.
     required: true
-    default: '1000'
+  directory:
+    description: Path to a Pulumi program to use for the test.
+    required: true
+  version:
+    description: The version of the provider to be tested.
+    required: true
+  provider:
+    description: The name of the provider (excluding the publisher prefix)
+    required: true
+  publisher:
+    description: The publisher of the provider (if not pulumi)
+    default: pulumi
 
 # Define your outputs here.
-outputs:
-  time:
-    description: 'Your output description here'
+outputs: {}
 
 runs:
   using: node20
