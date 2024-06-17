@@ -68,3 +68,11 @@ jobs:
           directory: __tests__/programs/random-python
           provider: random
           providerVersion: '4.16.2'
+
+      - name: Test Local Action for dotnet
+        uses: ./
+        with:
+          language: dotnet
+          directory: __tests__/programs/random-dotnet
+          provider: random
+          providerVersion: '4.16.2'

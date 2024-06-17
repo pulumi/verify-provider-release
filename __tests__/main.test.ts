@@ -89,6 +89,34 @@ describe('action', () => {
     expect(setOutputMock).toHaveBeenCalledTimes(0)
   })
 
+  it('dotnet setup', async () => {
+    // Set the action's inputs as return values from core.getInput()
+    getInputMock.mockImplementation(name => {
+      switch (name) {
+        case 'language':
+          return 'dotnet'
+        case 'directory':
+          return '__tests__/programs/random-dotnet'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return '4.16.2'
+        case 'publisher':
+          return 'pulumi'
+        default:
+          return ''
+      }
+    })
+
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    expect(setFailedMock).not.toHaveBeenCalled()
+    expect(errorMock).not.toHaveBeenCalled()
+    expect(debugMock).toHaveBeenCalled()
+    expect(setOutputMock).toHaveBeenCalledTimes(0)
+  })
+
   it('invalid language', async () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {

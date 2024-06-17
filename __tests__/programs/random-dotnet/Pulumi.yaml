@@ -1,0 +1,3 @@
+name: scratch-yaml
+runtime: dotnet
+description: A Pulumi YAML program to deploy a serverless application on AWS

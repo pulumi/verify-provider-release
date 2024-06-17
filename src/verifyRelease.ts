@@ -72,6 +72,9 @@ async function installPackageVersion(
     case 'python':
       await installPipPackageVersion(wd, opts)
       break
+    case 'dotnet':
+      await installDotnetPackageVersion(wd, opts)
+      break
   }
 }
 
@@ -116,5 +119,30 @@ async function installPipPackageVersion(
   core.debug(`Installing requirements.txt: installReqCmd`)
   if (shell.exec(installReqCmd, { cwd, fatal: true }).code !== 0) {
     throw new Error(`Failed to install requirements.txt`)
+  }
+}
+
+async function installDotnetPackageVersion(
+  cwd: string,
+  opts: VerifyReleaseOptions
+): Promise<void> {
+  const packageRef = `${opts.publisher}.${opts.provider}`
+  const removeCmd = `dotnet remove package ${packageRef}`
+  core.debug(`Removing any existing dotnet package: ${removeCmd}`)
+  const removeExec = shell.exec(removeCmd, { cwd })
+  if (removeExec.code !== 0) {
+    core.debug(
+      `Failed to remove ${packageRef}: \n${removeExec.stderr}\n${removeExec.stdout}`
+    )
+  }
+
+  const packageVersionRef = `${packageRef} --version ${opts.providerVersion}`
+  const addCmd = `dotnet add package ${packageVersionRef}`
+  core.debug(`Installing dotnet package: ${addCmd}`)
+  const addExec = shell.exec(addCmd, { cwd, fatal: true })
+  if (addExec.code !== 0) {
+    throw new Error(
+      `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
+    )
   }
 }
