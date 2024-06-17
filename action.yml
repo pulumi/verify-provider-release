@@ -30,6 +30,12 @@ inputs:
   publisher:
     description: The publisher of the provider (if not pulumi)
     default: pulumi
+  goModuleTemplate:
+    description: |
+      Template to generate the go module to be used.
+      Available template fields: `{publisher}`, `{provider}`, `{moduleVersionSuffix}`
+      {moduleVersionSuffix} is calculated from the provider version e.g. "/v2"
+    default: github.com/{publisher}/pulumi-{provider}/sdk{moduleVersionSuffix}
 
 # Define your outputs here.
 outputs: {}

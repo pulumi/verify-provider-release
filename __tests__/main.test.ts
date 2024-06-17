@@ -117,6 +117,38 @@ describe('action', () => {
     expect(setOutputMock).toHaveBeenCalledTimes(0)
   })
 
+  it('go setup', async () => {
+    // Set the action's inputs as return values from core.getInput()
+    getInputMock.mockImplementation(name => {
+      switch (name) {
+        case 'language':
+          return 'go'
+        case 'directory':
+          return '__tests__/programs/random-go'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return '4.16.2'
+        case 'packageVersion':
+          return 'v4.16.2'
+        case 'publisher':
+          return 'pulumi'
+        case 'goModuleTemplate':
+          return 'github.com/{publisher}/pulumi-{provider}/sdk{moduleVersionSuffix}'
+        default:
+          return ''
+      }
+    })
+
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    expect(setFailedMock).not.toHaveBeenCalled()
+    expect(errorMock).not.toHaveBeenCalled()
+    expect(debugMock).toHaveBeenCalled()
+    expect(setOutputMock).toHaveBeenCalledTimes(0)
+  })
+
   it('invalid language', async () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
@@ -195,38 +227,6 @@ describe('action', () => {
     expect(setFailedMock).toHaveBeenNthCalledWith(
       1,
       'Invalid provider version: not a version'
-    )
-    expect(errorMock).not.toHaveBeenCalled()
-  })
-
-  it('invalid package version', async () => {
-    // Set the action's inputs as return values from core.getInput()
-    getInputMock.mockImplementation(name => {
-      switch (name) {
-        case 'language':
-          return 'nodejs'
-        case 'directory':
-          return '__tests__/programs/random-nodejs'
-        case 'provider':
-          return 'random'
-        case 'providerVersion':
-          return '4.16.2'
-        case 'packageVersion':
-          return 'not a version'
-        case 'publisher':
-          return 'pulumi'
-        default:
-          return ''
-      }
-    })
-
-    await main.run()
-    expect(runMock).toHaveReturned()
-
-    // Verify that all of the core library functions were called correctly
-    expect(setFailedMock).toHaveBeenNthCalledWith(
-      1,
-      'Invalid package version: not a version'
     )
     expect(errorMock).not.toHaveBeenCalled()
   })

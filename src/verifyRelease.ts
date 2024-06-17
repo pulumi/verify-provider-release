@@ -11,6 +11,7 @@ export interface VerifyReleaseOptions {
   providerVersion: string
   packageVersion: string
   publisher: string
+  goModuleTemplate: string
 }
 
 /**
@@ -75,6 +76,9 @@ async function installPackageVersion(
     case 'dotnet':
       await installDotnetPackageVersion(wd, opts)
       break
+    case 'go':
+      await installGoPackageVersion(wd, opts)
+      break
   }
 }
 
@@ -86,7 +90,7 @@ async function installNpmPackageVersion(
   core.debug(`Removing any existing npm package: ${packageRef}`)
   shell.exec(`npm remove ${packageRef}`, { cwd })
 
-  const packageVersionRef = `${packageRef}@${opts.providerVersion}`
+  const packageVersionRef = `${packageRef}@${opts.packageVersion}`
   core.debug(`Installing npm package: ${packageVersionRef}`)
   shell.exec(`npm install ${packageVersionRef}`, { cwd, fatal: true })
 }
@@ -108,7 +112,7 @@ async function installPipPackageVersion(
     core.debug(`Failed to uninstall ${packageRef}`)
   }
 
-  const packageVersionRef = `${packageRef}==${opts.providerVersion}`
+  const packageVersionRef = `${packageRef}==${opts.packageVersion}`
   const installCmd = `./venv/bin/pip install ${packageVersionRef}`
   core.debug(`Installing pip package: ${installCmd}`)
   if (shell.exec(installCmd, { cwd, fatal: true }).code !== 0) {
@@ -136,13 +140,43 @@ async function installDotnetPackageVersion(
     )
   }
 
-  const packageVersionRef = `${packageRef} --version ${opts.providerVersion}`
+  const packageVersionRef = `${packageRef} --version ${opts.packageVersion}`
   const addCmd = `dotnet add package ${packageVersionRef}`
   core.debug(`Installing dotnet package: ${addCmd}`)
   const addExec = shell.exec(addCmd, { cwd, fatal: true })
   if (addExec.code !== 0) {
     throw new Error(
       `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
+    )
+  }
+}
+
+async function installGoPackageVersion(
+  cwd: string,
+  opts: VerifyReleaseOptions
+): Promise<void> {
+  const majorVersion = parseInt(opts.providerVersion.split('.')[0], 10)
+  const moduleVersionSuffix = majorVersion >= 2 ? `/v${majorVersion}` : ''
+  const packageRef = opts.goModuleTemplate
+    .replace('{publisher}', opts.publisher)
+    .replace('{provider}', opts.provider)
+    .replace('{moduleVersionSuffix}', moduleVersionSuffix)
+  const packageVersionRef = `${packageRef}@${opts.packageVersion}`
+  const addCmd = `go get ${packageVersionRef}`
+  core.debug(`Installing go package: ${addCmd}`)
+  const addExec = shell.exec(addCmd, { cwd, fatal: true })
+  if (addExec.code !== 0) {
+    throw new Error(
+      `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
+    )
+  }
+
+  const modCmd = `go mod tidy`
+  core.debug(`Tidying go modules: ${modCmd}`)
+  const modExec = shell.exec(modCmd, { cwd, fatal: true })
+  if (modExec.code !== 0) {
+    throw new Error(
+      `Failed to tidy go modules: \n${modExec.stderr}\n${modExec.stdout}`
     )
   }
 }

@@ -3,7 +3,7 @@ import * as core from '@actions/core'
 import { verifyRelease } from './verifyRelease'
 import { parse } from 'semver'
 
-const supportedLanguages = ['python', 'nodejs', 'dotnet', 'go', 'typescript']
+const supportedLanguages = ['python', 'nodejs', 'dotnet', 'go', 'java', 'yaml']
 
 /**
  * The main function for the action.
@@ -20,6 +20,7 @@ export async function run(): Promise<void> {
       packageVersion = providerVersion
     }
     const publisher: string = core.getInput('publisher')
+    const goModuleTemplate: string = core.getInput('goModuleTemplate')
 
     if (!supportedLanguages.includes(language)) {
       throw new Error(`Unsupported language: ${language}`)
@@ -39,19 +40,14 @@ export async function run(): Promise<void> {
       return
     }
 
-    const parsedPackageVersion = parse(packageVersion)
-    if (parsedPackageVersion === null) {
-      core.setFailed(`Invalid package version: ${packageVersion}`)
-      return
-    }
-
     await verifyRelease({
       language,
       directory,
       provider,
       providerVersion,
       packageVersion,
-      publisher
+      publisher,
+      goModuleTemplate
     })
   } catch (error) {
     // Fail the workflow run if an error occurs
