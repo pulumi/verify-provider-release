@@ -53,12 +53,10 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
-      - name: Test Local Action
-        id: test-action
+      - name: Test Local Action for nodejs
         uses: ./
         with:
-          milliseconds: 2000
-
-      - name: Print Output
-        id: output
-        run: echo "${{ steps.test-action.outputs.time }}"
+          language: nodejs
+          directory: __tests__/programs/random-nodejs
+          provider: random
+          providerVersion: '4.16.2'

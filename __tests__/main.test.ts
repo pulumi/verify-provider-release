@@ -12,9 +12,6 @@ import * as main from '../src/main'
 // Mock the action's main function
 const runMock = jest.spyOn(main, 'run')
 
-// Other utilities
-const timeRegex = /^\d{2}:\d{2}:\d{2}/
-
 // Mock the GitHub Actions core library
 let debugMock: jest.SpiedFunction<typeof core.debug>
 let errorMock: jest.SpiedFunction<typeof core.error>
@@ -23,6 +20,9 @@ let setFailedMock: jest.SpiedFunction<typeof core.setFailed>
 let setOutputMock: jest.SpiedFunction<typeof core.setOutput>
 
 describe('action', () => {
+  // Increase the Jest timeout to 30 seconds as we're download dependencies
+  jest.setTimeout(30 * 1000)
+
   beforeEach(() => {
     jest.clearAllMocks()
 
@@ -33,12 +33,20 @@ describe('action', () => {
     setOutputMock = jest.spyOn(core, 'setOutput').mockImplementation()
   })
 
-  it('sets the time output', async () => {
+  it('valid setup', async () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'milliseconds':
-          return '500'
+        case 'language':
+          return 'nodejs'
+        case 'directory':
+          return '__tests__/programs/random-nodejs'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return '4.16.2'
+        case 'publisher':
+          return 'pulumi'
         default:
           return ''
       }
@@ -47,30 +55,18 @@ describe('action', () => {
     await main.run()
     expect(runMock).toHaveReturned()
 
-    // Verify that all of the core library functions were called correctly
-    expect(debugMock).toHaveBeenNthCalledWith(1, 'Waiting 500 milliseconds ...')
-    expect(debugMock).toHaveBeenNthCalledWith(
-      2,
-      expect.stringMatching(timeRegex)
-    )
-    expect(debugMock).toHaveBeenNthCalledWith(
-      3,
-      expect.stringMatching(timeRegex)
-    )
-    expect(setOutputMock).toHaveBeenNthCalledWith(
-      1,
-      'time',
-      expect.stringMatching(timeRegex)
-    )
+    expect(setFailedMock).not.toHaveBeenCalled()
     expect(errorMock).not.toHaveBeenCalled()
+    expect(debugMock).toHaveBeenCalled()
+    expect(setOutputMock).toHaveBeenCalledTimes(0)
   })
 
-  it('sets a failed status', async () => {
+  it('invalid language', async () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'milliseconds':
-          return 'this is not a number'
+        case 'language':
+          return 'this is not a language'
         default:
           return ''
       }
@@ -82,7 +78,99 @@ describe('action', () => {
     // Verify that all of the core library functions were called correctly
     expect(setFailedMock).toHaveBeenNthCalledWith(
       1,
-      'milliseconds not a number'
+      'Unsupported language: this is not a language'
+    )
+    expect(errorMock).not.toHaveBeenCalled()
+  })
+
+  it('directory does not exist', async () => {
+    // Set the action's inputs as return values from core.getInput()
+    getInputMock.mockImplementation(name => {
+      switch (name) {
+        case 'language':
+          return 'nodejs'
+        case 'directory':
+          return '__tests__/programs/nonexistent'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return '4.16.2'
+        case 'publisher':
+          return 'pulumi'
+        default:
+          return ''
+      }
+    })
+
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    // Verify that all of the core library functions were called correctly
+    expect(setFailedMock).toHaveBeenNthCalledWith(
+      1,
+      "Can't access directory __tests__/programs/nonexistent: Error: ENOENT: no such file or directory, access '__tests__/programs/nonexistent'"
+    )
+    expect(errorMock).not.toHaveBeenCalled()
+  })
+
+  it('invalid provider version', async () => {
+    // Set the action's inputs as return values from core.getInput()
+    getInputMock.mockImplementation(name => {
+      switch (name) {
+        case 'language':
+          return 'nodejs'
+        case 'directory':
+          return '__tests__/programs/random-nodejs'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return 'not a version'
+        case 'publisher':
+          return 'pulumi'
+        default:
+          return ''
+      }
+    })
+
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    // Verify that all of the core library functions were called correctly
+    expect(setFailedMock).toHaveBeenNthCalledWith(
+      1,
+      'Invalid provider version: not a version'
+    )
+    expect(errorMock).not.toHaveBeenCalled()
+  })
+
+  it('invalid package version', async () => {
+    // Set the action's inputs as return values from core.getInput()
+    getInputMock.mockImplementation(name => {
+      switch (name) {
+        case 'language':
+          return 'nodejs'
+        case 'directory':
+          return '__tests__/programs/random-nodejs'
+        case 'provider':
+          return 'random'
+        case 'providerVersion':
+          return '4.16.2'
+        case 'packageVersion':
+          return 'not a version'
+        case 'publisher':
+          return 'pulumi'
+        default:
+          return ''
+      }
+    })
+
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    // Verify that all of the core library functions were called correctly
+    expect(setFailedMock).toHaveBeenNthCalledWith(
+      1,
+      'Invalid package version: not a version'
     )
     expect(errorMock).not.toHaveBeenCalled()
   })

@@ -1,5 +1,9 @@
+import { access } from 'fs/promises'
 import * as core from '@actions/core'
-import { wait } from './wait'
+import { verifyRelease } from './verifyRelease'
+import { parse } from 'semver'
+
+const supportedLanguages = ['python', 'nodejs', 'dotnet', 'go', 'typescript']
 
 /**
  * The main function for the action.
@@ -7,20 +11,54 @@ import { wait } from './wait'
  */
 export async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
+    const language: string = core.getInput('language')
+    const directory: string = core.getInput('directory')
+    const provider: string = core.getInput('provider')
+    const providerVersion: string = core.getInput('providerVersion')
+    let packageVersion: string = core.getInput('packageVersion')
+    if (packageVersion === '') {
+      packageVersion = providerVersion
+    }
+    const publisher: string = core.getInput('publisher')
 
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    if (!supportedLanguages.includes(language)) {
+      throw new Error(`Unsupported language: ${language}`)
+    }
 
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    // Ensure directory exists
+    try {
+      await access(directory)
+    } catch (error) {
+      core.setFailed(`Can't access directory ${directory}: ${error}`)
+      return
+    }
 
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
+    const parsedProviderVersion = parse(providerVersion)
+    if (parsedProviderVersion === null) {
+      core.setFailed(`Invalid provider version: ${providerVersion}`)
+      return
+    }
+
+    const parsedPackageVersion = parse(packageVersion)
+    if (parsedPackageVersion === null) {
+      core.setFailed(`Invalid package version: ${packageVersion}`)
+      return
+    }
+
+    await verifyRelease({
+      language,
+      directory,
+      provider,
+      providerVersion,
+      packageVersion,
+      publisher
+    })
   } catch (error) {
     // Fail the workflow run if an error occurs
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.setFailed(error.message)
+    } else {
+      core.setFailed(`An unknown error occurred: ${error}`)
+    }
   }
 }
