@@ -46,12 +46,30 @@ jobs:
 
   test-action:
     name: GitHub Actions Test
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          # Disable windows until we can work out why the ENV is not being set correctly
+          # - windows-latest
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+
+      - uses: pulumi/actions@v5
+      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
 
       - name: Test Local Action for nodejs
         uses: ./
