@@ -97,7 +97,7 @@ jobs:
       - name: Test Local Action for go
         uses: ./
         with:
-          runtime: dotnet
+          runtime: go
           directory: __tests__/programs/random-go
           provider: random
           providerVersion: '4.16.2'
