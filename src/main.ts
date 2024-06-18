@@ -3,7 +3,7 @@ import * as core from '@actions/core'
 import { verifyRelease } from './verifyRelease'
 import { parse } from 'semver'
 
-const supportedLanguages = ['python', 'nodejs', 'dotnet', 'go', 'java', 'yaml']
+const supportedRuntimes = ['python', 'nodejs', 'dotnet', 'go', 'java', 'yaml']
 
 /**
  * The main function for the action.
@@ -11,7 +11,7 @@ const supportedLanguages = ['python', 'nodejs', 'dotnet', 'go', 'java', 'yaml']
  */
 export async function run(): Promise<void> {
   try {
-    const language: string = core.getInput('language')
+    const runtime: string = core.getInput('runtime')
     const directory: string = core.getInput('directory')
     const provider: string = core.getInput('provider')
     const providerVersion: string = core.getInput('providerVersion')
@@ -22,8 +22,8 @@ export async function run(): Promise<void> {
     const publisher: string = core.getInput('publisher')
     const goModuleTemplate: string = core.getInput('goModuleTemplate')
 
-    if (!supportedLanguages.includes(language)) {
-      throw new Error(`Unsupported language: ${language}`)
+    if (!supportedRuntimes.includes(runtime)) {
+      throw new Error(`Unsupported runtime: ${runtime}`)
     }
 
     // Ensure directory exists
@@ -41,7 +41,7 @@ export async function run(): Promise<void> {
     }
 
     await verifyRelease({
-      language,
+      runtime,
       directory,
       provider,
       providerVersion,

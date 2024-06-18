@@ -49,11 +49,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
+        runner:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
@@ -73,7 +73,7 @@ jobs:
       - name: Test Local Action for nodejs
         uses: ./
         with:
-          language: nodejs
+          runtime: nodejs
           directory: __tests__/programs/random-nodejs
           provider: random
           providerVersion: '4.16.2'
@@ -81,7 +81,7 @@ jobs:
       - name: Test Local Action for python
         uses: ./
         with:
-          language: python
+          runtime: python
           directory: __tests__/programs/random-python
           provider: random
           providerVersion: '4.16.2'
@@ -89,7 +89,16 @@ jobs:
       - name: Test Local Action for dotnet
         uses: ./
         with:
-          language: dotnet
+          runtime: dotnet
           directory: __tests__/programs/random-dotnet
           provider: random
           providerVersion: '4.16.2'
+
+      - name: Test Local Action for go
+        uses: ./
+        with:
+          runtime: dotnet
+          directory: __tests__/programs/random-go
+          provider: random
+          providerVersion: '4.16.2'
+          packageVersion: 'v4.16.2'

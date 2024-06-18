@@ -9,9 +9,9 @@ branding:
 
 # Define your inputs here.
 inputs:
-  language:
+  runtime:
     description:
-      The language to test against. One of `nodejs`, `python`, `dotnet`, `go` or
+      The runtime to test against. One of `nodejs`, `python`, `dotnet`, `go` or
       `java`.
     required: true
   directory:
