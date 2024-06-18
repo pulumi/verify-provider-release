@@ -101,4 +101,3 @@ jobs:
           directory: __tests__/programs/random-go
           provider: random
           providerVersion: '4.16.2'
-          packageVersion: 'v4.16.2'
