@@ -30,9 +30,6 @@ export async function verifyRelease(opts: VerifyReleaseOptions): Promise<void> {
   const wd = path.join(tempDir, path.basename(opts.directory))
   core.debug(`Temp working directory: ${wd}`)
 
-  core.debug(shell.exec(`pulumi login --local`, { cwd: wd, fatal: true }))
-  core.debug(shell.exec(`pulumi about`, { cwd: wd, fatal: true }))
-
   try {
     core.debug(`Creating stack "verify-release" in ${wd}`)
     const stack = await LocalWorkspace.createStack(
@@ -46,7 +43,7 @@ export async function verifyRelease(opts: VerifyReleaseOptions): Promise<void> {
         secretsProvider: 'passphrase',
         envVars: {
           PULUMI_CONFIG_PASSPHRASE: 'correct-horse-battery-staple',
-          PULUMI_BACKEND_URL: `file://${tempDir}`,
+          PULUMI_BACKEND_URL: buildBackendPath(tempDir),
           // Disable ambient plugins to ensure the correct provider version is downloaded in case there's a local build on the path
           PULUMI_IGNORE_AMBIENT_PLUGINS: 'true'
         }
@@ -182,4 +179,12 @@ async function installGoPackageVersion(
       `Failed to tidy go modules: \n${modExec.stderr}\n${modExec.stdout}`
     )
   }
+}
+
+function buildBackendPath(tempDir: string): string {
+  // Check if we're running on windows
+  if (process.platform === 'win32') {
+    return `file://${tempDir.replace(/\\/g, '//')}`
+  }
+  return `file://${tempDir}`
 }
