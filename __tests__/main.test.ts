@@ -37,7 +37,7 @@ describe('action', () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
+        case 'runtime':
           return 'nodejs'
         case 'directory':
           return '__tests__/programs/random-nodejs'
@@ -65,7 +65,7 @@ describe('action', () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
+        case 'runtime':
           return 'python'
         case 'directory':
           return '__tests__/programs/random-python'
@@ -93,7 +93,7 @@ describe('action', () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
+        case 'runtime':
           return 'dotnet'
         case 'directory':
           return '__tests__/programs/random-dotnet'
@@ -121,7 +121,7 @@ describe('action', () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
+        case 'runtime':
           return 'go'
         case 'directory':
           return '__tests__/programs/random-go'
@@ -149,12 +149,12 @@ describe('action', () => {
     expect(setOutputMock).toHaveBeenCalledTimes(0)
   })
 
-  it('invalid language', async () => {
+  it('invalid runtime', async () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
-          return 'this is not a language'
+        case 'runtime':
+          return 'this is not a runtime'
         default:
           return ''
       }
@@ -166,7 +166,7 @@ describe('action', () => {
     // Verify that all of the core library functions were called correctly
     expect(setFailedMock).toHaveBeenNthCalledWith(
       1,
-      'Unsupported language: this is not a language'
+      'Unsupported runtime: this is not a runtime'
     )
     expect(errorMock).not.toHaveBeenCalled()
   })
@@ -175,7 +175,7 @@ describe('action', () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
+        case 'runtime':
           return 'nodejs'
         case 'directory':
           return '__tests__/programs/nonexistent'
@@ -205,7 +205,7 @@ describe('action', () => {
     // Set the action's inputs as return values from core.getInput()
     getInputMock.mockImplementation(name => {
       switch (name) {
-        case 'language':
+        case 'runtime':
           return 'nodejs'
         case 'directory':
           return '__tests__/programs/random-nodejs'

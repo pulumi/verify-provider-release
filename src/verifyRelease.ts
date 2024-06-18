@@ -5,7 +5,7 @@ import * as fs from 'fs/promises'
 import shell from 'shelljs'
 
 export interface VerifyReleaseOptions {
-  language: string
+  runtime: string
   directory: string
   provider: string
   providerVersion: string
@@ -66,7 +66,7 @@ async function installPackageVersion(
   wd: string,
   opts: VerifyReleaseOptions
 ): Promise<void> {
-  switch (opts.language) {
+  switch (opts.runtime) {
     case 'nodejs':
       await installNpmPackageVersion(wd, opts)
       break

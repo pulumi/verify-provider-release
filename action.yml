@@ -9,9 +9,9 @@ branding:
 
 # Define your inputs here.
 inputs:
-  language:
+  runtime:
     description:
-      The language to test against. One of `nodejs`, `python`, `dotnet`, `go` or
+      The runtime to test against. One of `nodejs`, `python`, `dotnet`, `go` or
       `java`.
     required: true
   directory:
@@ -26,7 +26,8 @@ inputs:
   packageVersion:
     description:
       The version of the package to be tested. Defaults to `providerVersion` if
-      not set.
+      not set. This must be set for Go because its versions are always a
+      different format to the provider's.
   publisher:
     description: The publisher of the provider (if not pulumi)
     default: pulumi
