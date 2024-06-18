@@ -43,11 +43,9 @@ export async function verifyRelease(opts: VerifyReleaseOptions): Promise<void> {
         secretsProvider: 'passphrase',
         envVars: {
           PULUMI_CONFIG_PASSPHRASE: 'correct-horse-battery-staple',
-          PULUMI_BACKEND_URL: `file://${tempDir}`,
+          PULUMI_BACKEND_URL: buildBackendPath(tempDir),
           // Disable ambient plugins to ensure the correct provider version is downloaded in case there's a local build on the path
-          PULUMI_IGNORE_AMBIENT_PLUGINS: 'true',
-          // PULUMI_ACCESS_TOKEN must be set for login during non-interactive CLI sessions
-          PULUMI_ACCESS_TOKEN: 'fake-token'
+          PULUMI_IGNORE_AMBIENT_PLUGINS: 'true'
         }
       }
     )
@@ -108,20 +106,25 @@ async function installPipPackageVersion(
     throw new Error('Failed to create virtualenv')
   }
 
-  const uninstallCmd = `./venv/bin/pip uninstall -y ${packageRef}`
+  let pip = './venv/bin/pip'
+  if (process.platform === 'win32') {
+    pip = 'venv\\Scripts\\pip.exe'
+  }
+
+  const uninstallCmd = `${pip} uninstall -y ${packageRef}`
   core.debug(`Removing any existing pip package: ${uninstallCmd}`)
   if (shell.exec(uninstallCmd, { cwd }).code !== 0) {
     core.debug(`Failed to uninstall ${packageRef}`)
   }
 
   const packageVersionRef = `${packageRef}==${opts.packageVersion}`
-  const installCmd = `./venv/bin/pip install ${packageVersionRef}`
+  const installCmd = `${pip} install ${packageVersionRef}`
   core.debug(`Installing pip package: ${installCmd}`)
   if (shell.exec(installCmd, { cwd, fatal: true }).code !== 0) {
     throw new Error(`Failed to install ${packageVersionRef}`)
   }
 
-  const installReqCmd = `./venv/bin/pip install -r requirements.txt`
+  const installReqCmd = `${pip} install -r requirements.txt`
   core.debug(`Installing requirements.txt: installReqCmd`)
   if (shell.exec(installReqCmd, { cwd, fatal: true }).code !== 0) {
     throw new Error(`Failed to install requirements.txt`)
@@ -181,4 +184,12 @@ async function installGoPackageVersion(
       `Failed to tidy go modules: \n${modExec.stderr}\n${modExec.stdout}`
     )
   }
+}
+
+function buildBackendPath(tempDir: string): string {
+  // Check if we're running on windows
+  if (process.platform === 'win32') {
+    return `file://${tempDir.replace(/\\/g, '//')}`
+  }
+  return `file://${tempDir}`
 }
