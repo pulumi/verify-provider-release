@@ -108,11 +108,10 @@ async function installPipPackageVersion(
 
   let pip = './venv/bin/pip'
   if (process.platform === 'win32') {
-    core.debug(shell.exec(`venv\\Scripts\\activate.bat`, { cwd, fatal: true }))
-    pip = 'pip'
+    pip = 'venv\\Scripts\\pip.exe'
   }
 
-  const uninstallCmd = `./venv/bin/pip uninstall -y ${packageRef}`
+  const uninstallCmd = `${pip} uninstall -y ${packageRef}`
   core.debug(`Removing any existing pip package: ${uninstallCmd}`)
   if (shell.exec(uninstallCmd, { cwd }).code !== 0) {
     core.debug(`Failed to uninstall ${packageRef}`)
