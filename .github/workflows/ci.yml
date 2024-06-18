@@ -47,6 +47,7 @@ jobs:
   test-action:
     name: GitHub Actions Test
     strategy:
+      fail-fast: false
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
@@ -55,6 +56,12 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+
+      - uses: pulumi/actions@v5
+      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
+      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-go@v5
 
       - name: Test Local Action for nodejs
         uses: ./
