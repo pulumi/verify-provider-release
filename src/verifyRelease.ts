@@ -106,6 +106,12 @@ async function installPipPackageVersion(
     throw new Error('Failed to create virtualenv')
   }
 
+  let pip = './venv/bin/pip'
+  if (process.platform === 'win32') {
+    core.debug(shell.exec(`venv\\Scripts\\activate.bat`, { cwd, fatal: true }))
+    pip = 'pip'
+  }
+
   const uninstallCmd = `./venv/bin/pip uninstall -y ${packageRef}`
   core.debug(`Removing any existing pip package: ${uninstallCmd}`)
   if (shell.exec(uninstallCmd, { cwd }).code !== 0) {
@@ -113,13 +119,13 @@ async function installPipPackageVersion(
   }
 
   const packageVersionRef = `${packageRef}==${opts.packageVersion}`
-  const installCmd = `./venv/bin/pip install ${packageVersionRef}`
+  const installCmd = `${pip} install ${packageVersionRef}`
   core.debug(`Installing pip package: ${installCmd}`)
   if (shell.exec(installCmd, { cwd, fatal: true }).code !== 0) {
     throw new Error(`Failed to install ${packageVersionRef}`)
   }
 
-  const installReqCmd = `./venv/bin/pip install -r requirements.txt`
+  const installReqCmd = `${pip} install -r requirements.txt`
   core.debug(`Installing requirements.txt: installReqCmd`)
   if (shell.exec(installReqCmd, { cwd, fatal: true }).code !== 0) {
     throw new Error(`Failed to install requirements.txt`)
