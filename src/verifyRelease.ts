@@ -30,7 +30,8 @@ export async function verifyRelease(opts: VerifyReleaseOptions): Promise<void> {
   const wd = path.join(tempDir, path.basename(opts.directory))
   core.debug(`Temp working directory: ${wd}`)
 
-  shell.exec(`pulumi login --local`, { cwd: wd, fatal: true })
+  core.debug(shell.exec(`pulumi login --local`, { cwd: wd, fatal: true }))
+  core.debug(shell.exec(`pulumi about`, { cwd: wd, fatal: true }))
 
   try {
     core.debug(`Creating stack "verify-release" in ${wd}`)
