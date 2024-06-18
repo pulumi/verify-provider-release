@@ -17,7 +17,11 @@ export async function run(): Promise<void> {
     const providerVersion: string = core.getInput('providerVersion')
     let packageVersion: string = core.getInput('packageVersion')
     if (packageVersion === '') {
-      packageVersion = providerVersion
+      if (runtime === 'go') {
+        packageVersion = `v${providerVersion}`
+      } else {
+        packageVersion = providerVersion
+      }
     }
     const publisher: string = core.getInput('publisher')
     const goModuleTemplate: string = core.getInput('goModuleTemplate')
