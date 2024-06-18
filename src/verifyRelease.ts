@@ -45,7 +45,9 @@ export async function verifyRelease(opts: VerifyReleaseOptions): Promise<void> {
           PULUMI_CONFIG_PASSPHRASE: 'correct-horse-battery-staple',
           PULUMI_BACKEND_URL: `file://${tempDir}`,
           // Disable ambient plugins to ensure the correct provider version is downloaded in case there's a local build on the path
-          PULUMI_IGNORE_AMBIENT_PLUGINS: 'true'
+          PULUMI_IGNORE_AMBIENT_PLUGINS: 'true',
+          // PULUMI_ACCESS_TOKEN must be set for login during non-interactive CLI sessions
+          PULUMI_ACCESS_TOKEN: 'fake-token'
         }
       }
     )

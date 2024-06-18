@@ -62,6 +62,8 @@ jobs:
       - uses: actions/setup-python@v5
       - uses: actions/setup-dotnet@v4
       - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
 
       - name: Test Local Action for nodejs
         uses: ./
