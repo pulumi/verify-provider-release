@@ -52,8 +52,7 @@ jobs:
         platform:
           - ubuntu-latest
           - macos-latest
-          # Disable windows until we can work out why the ENV is not being set correctly
-          # - windows-latest
+          - windows-latest
     runs-on: ${{ matrix.platform }}
 
     steps:
