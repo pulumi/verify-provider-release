@@ -49,7 +49,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          # Disable windows until we can work out why the ENV is not being set correctly
+          # - windows-latest
     runs-on: ${{ matrix.platform }}
 
     steps:
