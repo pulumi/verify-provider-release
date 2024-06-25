@@ -18,7 +18,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   check-dist:
@@ -29,6 +29,9 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+        with:
+          # Check out the PR branch rather than the merge commit so we're able to push changes back.
+          ref: ${{ github.event.pull_request.head.ref || github.sha }}
 
       - name: Setup Node.js
         id: setup-node
@@ -70,3 +73,14 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - if:
+          ${{ failure() && steps.diff.outcome == 'failure' && github.event_name
+          == 'pull_request'}}
+        name: Push updated build
+        run: |
+          git config --global user.name pulumi-bot
+          git config --global user.email bot@pulumi.com
+          git add dist/
+          git commit -m "Rebuild dist"
+          git push
