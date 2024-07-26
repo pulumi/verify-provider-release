@@ -117,10 +117,17 @@ async function installPipPackageVersion(
     core.debug(`Failed to uninstall ${packageRef}`)
   }
 
+  // Wait for up to 15 minutes for the package to be available on PyPI
+  const startTime = Date.now()
   while (!isPypiPackageAvailable(cwd, pip, packageRef, opts.packageVersion)) {
     core.debug(
       `Waiting for ${packageRef}==${opts.packageVersion} to be available on PyPI`
     )
+    if (Date.now() - startTime > 15 * 60 * 1000) {
+      throw new Error(
+        `Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on PyPI`
+      )
+    }
     await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
   }
 
