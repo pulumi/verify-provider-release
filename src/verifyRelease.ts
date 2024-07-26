@@ -117,6 +117,20 @@ async function installPipPackageVersion(
     core.debug(`Failed to uninstall ${packageRef}`)
   }
 
+  // Wait for up to 15 minutes for the package to be available on PyPI
+  const startTime = Date.now()
+  while (!isPypiPackageAvailable(cwd, pip, packageRef, opts.packageVersion)) {
+    core.debug(
+      `Waiting for ${packageRef}==${opts.packageVersion} to be available on PyPI`
+    )
+    if (Date.now() - startTime > 15 * 60 * 1000) {
+      throw new Error(
+        `Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on PyPI`
+      )
+    }
+    await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
+  }
+
   const packageVersionRef = `${packageRef}==${opts.packageVersion}`
   const installCmd = `${pip} install ${packageVersionRef}`
   core.debug(`Installing pip package: ${installCmd}`)
@@ -129,6 +143,19 @@ async function installPipPackageVersion(
   if (shell.exec(installReqCmd, { cwd, fatal: true }).code !== 0) {
     throw new Error(`Failed to install requirements.txt`)
   }
+}
+
+function isPypiPackageAvailable(
+  cwd: string,
+  pip: string,
+  packageRef: string,
+  packageVersion: string
+): boolean {
+  const versions = shell.exec(`${pip} index versions --pre "${packageRef}"`, {
+    cwd,
+    silent: true
+  }).stdout
+  return versions.includes(packageVersion)
 }
 
 async function installDotnetPackageVersion(
