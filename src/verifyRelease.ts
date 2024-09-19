@@ -194,7 +194,7 @@ async function installGoPackageVersion(
     .replace('{provider}', opts.provider)
     .replace('{moduleVersionSuffix}', moduleVersionSuffix)
   const packageVersionRef = `${packageRef}@${opts.packageVersion}`
-  const addCmd = `go get ${packageVersionRef}`
+  const addCmd = `go mod edit -require=${packageVersionRef}`
   core.debug(`Installing go package: ${addCmd}`)
   const addExec = shell.exec(addCmd, { cwd, fatal: true })
   if (addExec.code !== 0) {
