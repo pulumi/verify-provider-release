@@ -56010,8 +56010,8 @@ function invokeOutput(tok, props, opts = {}, packageRef) {
     const [output, resolve] = createOutput(`invoke(${tok})`);
     invokeAsync(tok, props, opts, packageRef)
         .then((response) => {
-        const { result, isKnown, containsSecrets } = response;
-        resolve(result, isKnown, containsSecrets, [], undefined);
+        const { result, isKnown, containsSecrets, dependencies } = response;
+        resolve(result, isKnown, containsSecrets, dependencies, undefined);
     })
         .catch((err) => {
         resolve(undefined, true, false, [], err);
@@ -56049,9 +56049,9 @@ function invokeSingleOutput(tok, props, opts = {}, packageRef) {
     const [output, resolve] = createOutput(`invokeSingleOutput(${tok})`);
     invokeAsync(tok, props, opts, packageRef)
         .then((response) => {
-        const { result, isKnown, containsSecrets } = response;
+        const { result, isKnown, containsSecrets, dependencies } = response;
         const value = extractSingleValue(result);
-        resolve(value, isKnown, containsSecrets, [], undefined);
+        resolve(value, isKnown, containsSecrets, dependencies, undefined);
     })
         .catch((err) => {
         resolve(undefined, true, false, [], err);
@@ -56105,7 +56105,7 @@ function invokeAsync(tok, props, opts, packageRef) {
         // Wait for all values to be available, and then perform the RPC.
         const done = settings_1.rpcKeepAlive();
         try {
-            const serialized = yield rpc_1.serializeProperties(`invoke:${tok}`, props);
+            const [serialized, deps] = yield rpc_1.serializePropertiesReturnDeps(`invoke:${tok}`, props);
             if (rpc_1.containsUnknownValues(serialized)) {
                 // if any of the input properties are unknown,
                 // make sure the entire response is marked as unknown
@@ -56113,13 +56113,17 @@ function invokeAsync(tok, props, opts, packageRef) {
                     result: {},
                     isKnown: false,
                     containsSecrets: false,
+                    dependencies: [],
                 };
             }
             log.debug(`Invoke RPC prepared: tok=${tok}` + settings_1.excessiveDebugOutput ? `, obj=${JSON.stringify(serialized)}` : ``);
             // Fetch the monitor and make an RPC request.
             const monitor = settings_1.getMonitor();
             const provider = yield resource_1.ProviderResource.register(getProvider(tok, opts));
-            const req = yield createInvokeRequest(tok, serialized, provider, opts, packageRef);
+            // keep track of the the secretness of the inputs
+            // if any of the inputs are secret, the invoke response should be marked as secret
+            const [plainInputs, inputsContainSecrets] = rpc_1.unwrapSecretValues(serialized);
+            const req = yield createInvokeRequest(tok, plainInputs, provider, opts, packageRef);
             const resp = yield debuggable_1.debuggablePromise(new Promise((innerResolve, innerReject) => monitor.invoke(req, (err, innerResponse) => {
                 log.debug(`Invoke RPC finished: tok=${tok}; err: ${err}, resp: ${innerResponse}`);
                 if (err) {
@@ -56139,9 +56143,20 @@ function invokeAsync(tok, props, opts, packageRef) {
                     innerResolve(innerResponse);
                 }
             })), label);
+            const flatDependencies = [];
+            for (const dep of deps.values()) {
+                for (const d of dep) {
+                    flatDependencies.push(d);
+                }
+            }
             // Finally propagate any other properties that were given to us as outputs.
             const deserialized = deserializeResponse(tok, resp);
-            return Object.assign(Object.assign({}, deserialized), { isKnown: true });
+            return {
+                result: deserialized.result,
+                containsSecrets: deserialized.containsSecrets || inputsContainSecrets,
+                dependencies: flatDependencies,
+                isKnown: true,
+            };
         }
         finally {
             done();
@@ -57642,6 +57657,15 @@ exports.specialResourceSig = "5cf8f73096256a8f31e491e813e4eb8e";
  * @see sdk/go/common/resource/properties.go.
  */
 exports.specialOutputValueSig = "d0e6a833031e9bbcd3f4e8bde6ca49a4";
+/** @internal */
+function serializeSecretValue(value) {
+    return {
+        [exports.specialSigKey]: exports.specialSecretSig,
+        // coerce 'undefined' to 'null' as required by the protobuf system.
+        value: value === undefined ? null : value,
+    };
+}
+exports.serializeSecretValue = serializeSecretValue;
 /**
  * Serializes properties deeply.  This understands how to wait on any unresolved
  * promises, as appropriate, in addition to translating certain "special" values
@@ -57737,11 +57761,7 @@ function serializeProperty(ctx, prop, dependentResources, opts) {
                 return exports.unknownValue;
             }
             if (isSecret && state_1.getStore().supportsSecrets) {
-                return {
-                    [exports.specialSigKey]: exports.specialSecretSig,
-                    // coerce 'undefined' to 'null' as required by the protobuf system.
-                    value: value === undefined ? null : value,
-                };
+                return serializeSecretValue(value);
             }
             return value;
         }
@@ -57853,16 +57873,19 @@ function unwrapRpcSecret(obj) {
     return obj.value;
 }
 exports.unwrapRpcSecret = unwrapRpcSecret;
+function isPrimitive(value) {
+    return (value === null ||
+        value === undefined ||
+        typeof value === "boolean" ||
+        typeof value === "number" ||
+        typeof value === "string");
+}
 /** @internal */
 function containsUnknownValues(value) {
     if (value === exports.unknownValue) {
         return true;
     }
-    else if (value === null ||
-        value === undefined ||
-        typeof value === "boolean" ||
-        typeof value === "number" ||
-        typeof value === "string") {
+    else if (isPrimitive(value)) {
         return false;
     }
     else if (value instanceof Array) {
@@ -57874,6 +57897,37 @@ function containsUnknownValues(value) {
     }
 }
 exports.containsUnknownValues = containsUnknownValues;
+/** @internal */
+function unwrapSecretValues(value) {
+    if (isPrimitive(value)) {
+        return [value, false];
+    }
+    else if (isRpcSecret(value)) {
+        return [unwrapRpcSecret(value), true];
+    }
+    else if (value instanceof Array) {
+        let hadSecret = false;
+        const result = [];
+        for (const elem of value) {
+            const [unwrapped, isSecret] = unwrapSecretValues(elem);
+            hadSecret = hadSecret || isSecret;
+            result.push(unwrapped);
+        }
+        return [result, hadSecret];
+    }
+    else {
+        let hadSecret = false;
+        const result = {};
+        const map = value;
+        for (const key of Object.keys(map)) {
+            const [unwrapped, isSecret] = unwrapSecretValues(map[key]);
+            hadSecret = hadSecret || isSecret;
+            result[key] = unwrapped;
+        }
+        return [result, hadSecret];
+    }
+}
+exports.unwrapSecretValues = unwrapSecretValues;
 /**
  * Unpacks some special types, reversing the process undertaken by
  * {@link serializeProperty}.
@@ -59296,7 +59350,7 @@ exports.errorOutputString = process.env.PULUMI_ERROR_OUTPUT_STRING === "1" || ((
 // See the License for the specific language governing permissions and
 // limitations under the License.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.version = "3.135.1";
+exports.version = "3.136.1";
 //# sourceMappingURL=version.js.map
 
 /***/ }),
