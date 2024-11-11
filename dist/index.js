@@ -22375,8 +22375,7 @@ class RemoteStack {
      * Stops a stack's currently running update. It returns an error if no
      * update is currently running. Note that this operation is _very
      * dangerous_, and may leave the stack in an inconsistent state if a
-     * resource operation was pending when the update was canceled. This command
-     * is not supported for DIY backends.
+     * resource operation was pending when the update was canceled.
      */
     cancel() {
         return this.stack.cancel();
@@ -23570,8 +23569,7 @@ Event: ${line}\n${e.toString()}`);
      * Stops a stack's currently running update. It returns an error if no
      * update is currently running. Note that this operation is _very
      * dangerous_, and may leave the stack in an inconsistent state if a
-     * resource operation was pending when the update was canceled. This command
-     * is not supported for DIY backends.
+     * resource operation was pending when the update was canceled.
      */
     cancel() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -59350,7 +59348,7 @@ exports.errorOutputString = process.env.PULUMI_ERROR_OUTPUT_STRING === "1" || ((
 // See the License for the specific language governing permissions and
 // limitations under the License.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.version = "3.137.0";
+exports.version = "3.138.0";
 //# sourceMappingURL=version.js.map
 
 /***/ }),
