@@ -59348,7 +59348,7 @@ exports.errorOutputString = process.env.PULUMI_ERROR_OUTPUT_STRING === "1" || ((
 // See the License for the specific language governing permissions and
 // limitations under the License.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.version = "3.138.0";
+exports.version = "3.139.0";
 //# sourceMappingURL=version.js.map
 
 /***/ }),
