@@ -37,6 +37,21 @@ environments to ensure cross-platform builds work correctly.
     goModuleTemplate: 'github.com/{publisher}/pulumi-{provider}/sdk{moduleVersionSuffix}'
 ```
 
+### Language-Specific Details
+
+#### Python
+
+1. When testing prereleases, you'll need to set the `packageVersion` because it
+   will always be a different format to the provider's version.
+1. The `Pulumi.yaml` runtime must set the `virtualenv` option to `venv`:
+
+   ```yaml
+   runtime:
+     name: python
+     options:
+       virtualenv: venv
+   ```
+
 ## Development Setup
 
 1. :hammer_and_wrench: Install the dependencies
