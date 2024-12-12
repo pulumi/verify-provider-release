@@ -209,14 +209,28 @@ async function installDotnetPackageVersion(
     )
   }
 
-  const packageVersionRef = `${packageRef} --version ${opts.packageVersion}`
-  const addCmd = `dotnet add package ${packageVersionRef}`
-  core.debug(`Installing dotnet package: ${addCmd}`)
-  const addExec = shell.exec(addCmd, { cwd, fatal: true })
-  if (addExec.code !== 0) {
-    throw new Error(
-      `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
-    )
+  const packageVersionRef = `${packageRef} --version "[${opts.packageVersion}]"`
+  // Retry for up to 15 minutes if the package isn't available yet
+  const startTime = Date.now()
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const addCmd = `dotnet add package ${packageVersionRef}`
+    core.debug(`Installing dotnet package: ${addCmd}`)
+    const addExec = shell.exec(addCmd, { cwd, fatal: false })
+    if (addExec.code === 0) {
+      break
+    }
+    if (!addExec.stdout.includes('Unable to find package')) {
+      throw new Error(
+        `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
+      )
+    }
+    if (Date.now() - startTime > 15 * 60 * 1000) {
+      throw new Error(
+        `Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
+      )
+    }
+    await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
   }
 }
 
