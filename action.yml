@@ -11,8 +11,7 @@ branding:
 inputs:
   runtime:
     description:
-      The runtime to test against. One of `nodejs`, `python`, `dotnet`, `go` or
-      `java`.
+      The runtime to test against. One of `nodejs`, `python`, `dotnet` or `go`.
     required: true
   directory:
     description: Path to a Pulumi program to use for the test.

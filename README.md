@@ -18,7 +18,7 @@ environments to ensure cross-platform builds work correctly.
 ```yaml
 - uses: pulumi/verify-provider-release@v1
   with:
-    # The runtime to test against. One of `nodejs`, `python`, `dotnet`, `go` or `java`.
+    # The runtime to test against. One of `nodejs`, `python`, `dotnet` or `go`.
     runtime: 'nodejs'
     # Path to a Pulumi program to use for the test.
     directory: examples/simple-nodejs
