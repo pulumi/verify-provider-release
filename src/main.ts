@@ -3,7 +3,7 @@ import * as core from '@actions/core'
 import { verifyRelease } from './verifyRelease'
 import { parse } from 'semver'
 
-const supportedRuntimes = ['python', 'nodejs', 'dotnet', 'go', 'java', 'yaml']
+const supportedRuntimes = ['python', 'nodejs', 'dotnet', 'go', 'yaml']
 
 /**
  * The main function for the action.

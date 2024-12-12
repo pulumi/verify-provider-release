@@ -18,7 +18,7 @@ environments to ensure cross-platform builds work correctly.
 ```yaml
 - uses: pulumi/verify-provider-release@v1
   with:
-    # The runtime to test against. One of `nodejs`, `python`, `dotnet`, `go` or `java`.
+    # The runtime to test against. One of `nodejs`, `python`, `dotnet` or `go`.
     runtime: 'nodejs'
     # Path to a Pulumi program to use for the test.
     directory: examples/simple-nodejs
@@ -36,6 +36,21 @@ environments to ensure cross-platform builds work correctly.
     # Defaults to: `github.com/{publisher}/pulumi-{provider}/sdk{moduleVersionSuffix}`
     goModuleTemplate: 'github.com/{publisher}/pulumi-{provider}/sdk{moduleVersionSuffix}'
 ```
+
+### Language-Specific Details
+
+#### Python
+
+1. When testing prereleases, you'll need to set the `packageVersion` because it
+   will always be a different format to the provider's version.
+1. The `Pulumi.yaml` runtime must set the `virtualenv` option to `venv`:
+
+   ```yaml
+   runtime:
+     name: python
+     options:
+       virtualenv: venv
+   ```
 
 ## Development Setup
 
