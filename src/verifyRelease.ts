@@ -87,12 +87,49 @@ async function installNpmPackageVersion(
   opts: VerifyReleaseOptions
 ): Promise<void> {
   const packageRef = `@${opts.publisher}/${opts.provider}`
+  // Wait for up to 15 minutes for the package to be available on PyPI
+  const startTime = Date.now()
+  while (!isNpmPackageAvailable(cwd, packageRef, opts.packageVersion)) {
+    core.debug(
+      `Waiting for ${packageRef}@${opts.packageVersion} to be available on NPM`
+    )
+    if (Date.now() - startTime > 15 * 60 * 1000) {
+      throw new Error(
+        `Timed out waiting for ${packageRef}@${opts.packageVersion} to be available on NPM`
+      )
+    }
+    await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
+  }
   core.debug(`Removing any existing npm package: ${packageRef}`)
   shell.exec(`npm remove ${packageRef}`, { cwd })
 
   const packageVersionRef = `${packageRef}@${opts.packageVersion}`
   core.debug(`Installing npm package: ${packageVersionRef}`)
   shell.exec(`npm install ${packageVersionRef}`, { cwd, fatal: true })
+}
+
+function isNpmPackageAvailable(
+  cwd: string,
+  packageRef: string,
+  packageVersion: string
+): boolean {
+  const checkVersionExistsCmd = shell.exec(
+    `npm info ${packageRef}@${packageVersion} version`,
+    {
+      cwd,
+      silent: true,
+      fatal: false
+    }
+  )
+  if (checkVersionExistsCmd.code !== 0) {
+    return false
+  }
+  if (!checkVersionExistsCmd.stdout.includes(packageVersion)) {
+    throw new Error(
+      `Returned package version doesn't match requested version: ${checkVersionExistsCmd.stdout}`
+    )
+  }
+  return true
 }
 
 async function installPipPackageVersion(
