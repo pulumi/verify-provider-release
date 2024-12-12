@@ -209,22 +209,12 @@ async function installDotnetPackageVersion(
     )
   }
 
-  const packageVersionRef = `${packageRef} --version "[${opts.packageVersion}]"`
-  // Retry for up to 15 minutes if the package isn't available yet
+  // Wait for up to 15 minutes for the package to be available on PyPI
   const startTime = Date.now()
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const addCmd = `dotnet add package ${packageVersionRef}`
-    core.debug(`Installing dotnet package: ${addCmd}`)
-    const addExec = shell.exec(addCmd, { cwd, fatal: false })
-    if (addExec.code === 0) {
-      break
-    }
-    if (!addExec.stdout.includes('Unable to find package')) {
-      throw new Error(
-        `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
-      )
-    }
+  while (!(await isNugetPackageAvailable(packageRef, opts.packageVersion))) {
+    core.debug(
+      `Waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
+    )
     if (Date.now() - startTime > 15 * 60 * 1000) {
       throw new Error(
         `Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
@@ -232,6 +222,29 @@ async function installDotnetPackageVersion(
     }
     await new Promise(resolve => setTimeout(resolve, 5000)) // 5 seconds
   }
+
+  const packageVersionRef = `${packageRef} --version "[${opts.packageVersion}]"`
+  const addCmd = `dotnet add package ${packageVersionRef}`
+  core.debug(`Installing dotnet package: ${addCmd}`)
+  const addExec = shell.exec(addCmd, { cwd, fatal: true })
+  if (addExec.code !== 0) {
+    throw new Error(
+      `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
+    )
+  }
+}
+
+async function isNugetPackageAvailable(
+  packageRef: string,
+  packageVersion: string
+): Promise<boolean> {
+  // API methods: https://api.nuget.org/v3/index.json
+  const url = `https://api.nuget.org/v3-flatcontainer/${packageRef.toLowerCase()}/${packageVersion.toLowerCase()}/${packageRef.toLowerCase()}.${packageVersion.toLowerCase()}.nupkg`
+  const response = await fetch(url, {
+    method: 'HEAD'
+  })
+
+  return response.ok
 }
 
 async function installGoPackageVersion(
