@@ -145,7 +145,7 @@ async function installPipPackageVersion(
 
   let pip = './venv/bin/pip'
   if (process.platform === 'win32') {
-    pip = 'venv\\Scripts\\pip.exe'
+    pip = 'venv\\Scripts\\python3.exe -m pip'
   }
 
   const uninstallCmd = `${pip} uninstall -y ${packageRef}`
