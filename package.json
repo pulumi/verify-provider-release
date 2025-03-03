@@ -67,7 +67,7 @@
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@pulumi/pulumi": "^3.152.0",
+    "@pulumi/pulumi": "^3.153.1",
     "semver": "^7.7.1",
     "shelljs": "^0.8.5"
   },
