@@ -68,8 +68,8 @@ jobs:
       # If `dist/` was different than expected, upload the expected version as a
       # workflow artifact.
       - if:
-          ${{ failure() && steps.diff.outcome == 'failure' }} &&
-          !contains(github.actor, 'pulumi-bot')
+          ${{ failure() && steps.diff.outcome == 'failure' &&
+          !contains(github.actor, 'pulumi-bot') }}
         name: Upload Artifact
         id: upload
         uses: actions/upload-artifact@v4
@@ -79,7 +79,7 @@ jobs:
 
       - if:
           ${{ failure() && steps.diff.outcome == 'failure' && github.event_name
-          == 'pull_request'}} && !contains(github.actor, 'pulumi-bot')
+          == 'pull_request' && !contains(github.actor, 'pulumi-bot') }}
         name: Push updated build
         run: |
           git config --global user.name pulumi-bot
