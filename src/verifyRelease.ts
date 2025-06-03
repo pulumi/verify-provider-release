@@ -233,9 +233,12 @@ async function installDotnetPackageVersion(
     )
   }
 
-  // recursively delete the folder ${cwd}/obj to make sure obj/project.assets.json is deleted. This is a workaround for
-  // .NET version selection, sometimes when .NET 8 and 9 are available together, `dotnet add package` uses 9 but pulumi
-  // preview uses 8 and fails. With this workaround `pulumi preview` no longer fails but re-fetches the refs.
+  // Recursively delete the folder ${cwd}/obj to make sure obj/project.assets.json is deleted. This is a workaround for
+  // .NET version selection, sometimes on Mac OS and Windows runners when .NET 8 and 9 are available together, `dotnet
+  // add package` uses 9 but `pulumi preview` uses 8 and fails to read obj/project.assets.json that references 9. In
+  // contrast, ubuntu-latest runners succeed and select 8 uniformly.
+  //
+  // With this workaround `pulumi preview` no longer fails but re-fetches the refs to rebuild obj/project.assets.json.
   const objPath = path.join(cwd, 'obj')
   core.debug(`Cleaning up obj folder: ${objPath}`)
   try {
