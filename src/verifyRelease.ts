@@ -209,13 +209,13 @@ async function installDotnetPackageVersion(
     )
   }
 
-  // Wait for up to 15 minutes for the package to be available on PyPI
+  // Wait for up to 1 hour for the package to be available on NuGet
   const startTime = Date.now()
   while (!(await isNugetPackageAvailable(packageRef, opts.packageVersion))) {
     core.debug(
       `Waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
     )
-    if (Date.now() - startTime > 15 * 60 * 1000) {
+    if (Date.now() - startTime > 60 * 60 * 1000) {
       throw new Error(
         `Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
       )
@@ -231,6 +231,20 @@ async function installDotnetPackageVersion(
     throw new Error(
       `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
     )
+  }
+
+  // Recursively delete the folder ${cwd}/obj to make sure obj/project.assets.json is deleted. This is a workaround for
+  // .NET version selection, sometimes on Mac OS and Windows runners when .NET 8 and 9 are available together, `dotnet
+  // add package` uses 9 but `pulumi preview` uses 8 and fails to read obj/project.assets.json that references 9. In
+  // contrast, ubuntu-latest runners succeed and select 8 uniformly.
+  //
+  // With this workaround `pulumi preview` no longer fails but re-fetches the refs to rebuild obj/project.assets.json.
+  const objPath = path.join(cwd, 'obj')
+  core.debug(`Cleaning up obj folder: ${objPath}`)
+  try {
+    await fs.rm(objPath, { recursive: true, force: true })
+  } catch (err) {
+    core.debug(`Failed to remove obj folder: ${err}`)
   }
 }
 
