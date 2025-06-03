@@ -3,11 +3,11 @@
   extends: ['github>pulumi/renovate-config//default.json5'],
   packageRules: [
     {
-      matchPackagePatterns: ['*'],
       postUpgradeTasks: {
-        commands: ['make renovate'], // Regenerate dist.
-        executionMode: 'branch' // Only run once.
-      }
+        commands: ['make renovate'],
+        executionMode: 'branch'
+      },
+      matchPackageNames: ['*']
     }
   ]
 }
