@@ -232,6 +232,17 @@ async function installDotnetPackageVersion(
       `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
     )
   }
+
+  // recursively delete the folder ${cwd}/obj to make sure obj/project.assets.json is deleted. This is a workaround for
+  // .NET version selection, sometimes when .NET 8 and 9 are available together, `dotnet add package` uses 9 but pulumi
+  // preview uses 8 and fails. With this workaround `pulumi preview` no longer fails but re-fetches the refs.
+  const objPath = path.join(cwd, 'obj')
+  core.debug(`Cleaning up obj folder: ${objPath}`)
+  try {
+    await fs.rm(objPath, { recursive: true, force: true })
+  } catch (err) {
+    core.debug(`Failed to remove obj folder: ${err}`)
+  }
 }
 
 async function isNugetPackageAvailable(
