@@ -209,13 +209,13 @@ async function installDotnetPackageVersion(
     )
   }
 
-  // Wait for up to 15 minutes for the package to be available on PyPI
+  // Wait for up to 1 hour for the package to be available on NuGet
   const startTime = Date.now()
   while (!(await isNugetPackageAvailable(packageRef, opts.packageVersion))) {
     core.debug(
       `Waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
     )
-    if (Date.now() - startTime > 15 * 60 * 1000) {
+    if (Date.now() - startTime > 60 * 60 * 1000) {
       throw new Error(
         `Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`
       )
