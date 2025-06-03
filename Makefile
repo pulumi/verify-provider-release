@@ -1,2 +1,2 @@
 renovate:
-	npm run bundle # Regenerates dist.
+	npm ci && npm run bundle # Regenerates dist.
