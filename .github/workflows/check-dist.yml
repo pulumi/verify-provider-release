@@ -71,7 +71,9 @@ jobs:
             git diff --ignore-space-at-eol --text dist/
             exit 1
           fi
-      - if: ${{ failure() && steps.diff.outcome == 'failure' && !contains(github.actor, 'pulumi-bot') }}
+      - if:
+          ${{ failure() && steps.diff.outcome == 'failure' &&
+          !contains(github.actor, 'pulumi-bot') }}
         name: Upload Artifact
         id: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -79,7 +81,9 @@ jobs:
           name: dist
           path: dist/
 
-      - if: ${{ failure() && steps.diff.outcome == 'failure' && github.event_name == 'pull_request' && !contains(github.actor, 'pulumi-bot') }}
+      - if:
+          ${{ failure() && steps.diff.outcome == 'failure' && github.event_name
+          == 'pull_request' && !contains(github.actor, 'pulumi-bot') }}
         name: Push updated build
         run: |
           git config --global user.name pulumi-bot
