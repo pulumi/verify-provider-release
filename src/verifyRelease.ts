@@ -248,17 +248,25 @@ async function installDotnetPackageVersion(
   }
 }
 
-async function isNugetPackageAvailable(
+export async function isNugetPackageAvailable(
   packageRef: string,
   packageVersion: string
 ): Promise<boolean> {
   // API methods: https://api.nuget.org/v3/index.json
   const url = `https://api.nuget.org/v3-flatcontainer/${packageRef.toLowerCase()}/${packageVersion.toLowerCase()}/${packageRef.toLowerCase()}.${packageVersion.toLowerCase()}.nupkg`
-  const response = await fetch(url, {
-    method: 'HEAD'
-  })
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD'
+    })
 
-  return response.ok
+    return response.ok
+  } catch (err) {
+    // A transient network error tells us nothing about whether the package is
+    // published, so treat it as "not yet available" and let the caller retry
+    // until its timeout rather than failing the whole job on one bad request.
+    core.debug(`Failed to query NuGet for ${packageRef}: ${err}`)
+    return false
+  }
 }
 
 async function installGoPackageVersion(
