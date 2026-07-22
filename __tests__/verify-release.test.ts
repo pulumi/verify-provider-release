@@ -11,12 +11,29 @@ describe('isNugetPackageAvailable', () => {
     global.fetch = originalFetch
   })
 
-  it('reports unavailable when the request fails with a network error', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed'))
+  it.each([
+    {
+      scenario: 'the package is published',
+      mockFetch: () => jest.fn().mockResolvedValue({ ok: true } as Response),
+      expected: true
+    },
+    {
+      scenario: 'the package is not published',
+      mockFetch: () => jest.fn().mockResolvedValue({ ok: false } as Response),
+      expected: false
+    },
+    {
+      scenario: 'the request fails with a network error',
+      mockFetch: () =>
+        jest.fn().mockRejectedValue(new TypeError('fetch failed')),
+      expected: false
+    }
+  ])('reports $expected when $scenario', async ({ mockFetch, expected }) => {
+    global.fetch = mockFetch()
 
     await expect(
       isNugetPackageAvailable('pulumi.gcp', '9.31.0-alpha.1784719443')
-    ).resolves.toBe(false)
+    ).resolves.toBe(expected)
   })
 
   it('requests the lowercased package URL with HEAD', async () => {
@@ -28,21 +45,5 @@ describe('isNugetPackageAvailable', () => {
       'https://api.nuget.org/v3-flatcontainer/pulumi.gcp/9.31.0-alpha.1784719443/pulumi.gcp.9.31.0-alpha.1784719443.nupkg',
       { method: 'HEAD' }
     )
-  })
-
-  it('reports available when the package is published', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true } as Response)
-
-    await expect(
-      isNugetPackageAvailable('pulumi.gcp', '9.31.0-alpha.1784719443')
-    ).resolves.toBe(true)
-  })
-
-  it('reports unavailable when the package is not published', async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: false } as Response)
-
-    await expect(
-      isNugetPackageAvailable('pulumi.gcp', '9.31.0-alpha.1784719443')
-    ).resolves.toBe(false)
   })
 })
