@@ -1,8 +1,31 @@
 /**
- * Unit tests for the package availability probes in src/verifyRelease.ts
+ * Unit tests for the retry helpers and package availability probes in
+ * src/verifyRelease.ts
  */
 
-import { isNugetPackageAvailable } from '../src/verifyRelease'
+import { isNugetPackageAvailable, retryUntil } from '../src/verifyRelease'
+
+describe('retryUntil', () => {
+  it('returns once the attempt succeeds', async () => {
+    let attempts = 0
+    const attempt = (): boolean => {
+      attempts++
+      return attempts === 3
+    }
+
+    await retryUntil('the thing', { timeoutMs: 60_000, intervalMs: 0 }, attempt)
+
+    expect(attempts).toBe(3)
+  })
+
+  it('throws when the attempt never succeeds before the timeout', async () => {
+    const attempt = (): boolean => false
+
+    await expect(
+      retryUntil('the thing', { timeoutMs: 0, intervalMs: 0 }, attempt)
+    ).rejects.toThrow('Timed out waiting for the thing')
+  })
+})
 
 describe('isNugetPackageAvailable', () => {
   const originalFetch = global.fetch
