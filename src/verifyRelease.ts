@@ -264,6 +264,9 @@ export async function isNugetPackageAvailable(
     // A transient network error tells us nothing about whether the package is
     // published, so treat it as "not yet available" and let the caller retry
     // until its timeout rather than failing the whole job on one bad request.
+    // Every rejection is treated the same way, matching how the sibling npm and
+    // PyPI probes treat any failed exec as "not available". The base URL is a
+    // valid absolute URL, so no package ref or version can make it unparseable.
     core.debug(`Failed to query NuGet for ${packageRef}: ${err}`)
     return false
   }
