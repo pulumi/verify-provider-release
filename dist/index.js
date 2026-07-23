@@ -130482,6 +130482,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.verifyRelease = verifyRelease;
+exports.isNugetPackageAvailable = isNugetPackageAvailable;
 const core = __importStar(__nccwpck_require__(37484));
 const automation_1 = __nccwpck_require__(17965);
 const path = __importStar(__nccwpck_require__(16928));
@@ -130660,10 +130661,22 @@ async function installDotnetPackageVersion(cwd, opts) {
 async function isNugetPackageAvailable(packageRef, packageVersion) {
     // API methods: https://api.nuget.org/v3/index.json
     const url = `https://api.nuget.org/v3-flatcontainer/${packageRef.toLowerCase()}/${packageVersion.toLowerCase()}/${packageRef.toLowerCase()}.${packageVersion.toLowerCase()}.nupkg`;
-    const response = await fetch(url, {
-        method: 'HEAD'
-    });
-    return response.ok;
+    try {
+        const response = await fetch(url, {
+            method: 'HEAD'
+        });
+        return response.ok;
+    }
+    catch (err) {
+        // A transient network error tells us nothing about whether the package is
+        // published, so treat it as "not yet available" and let the caller retry
+        // until its timeout rather than failing the whole job on one bad request.
+        // Every rejection is treated the same way, matching how the sibling npm and
+        // PyPI probes treat any failed exec as "not available". The base URL is a
+        // valid absolute URL, so no package ref or version can make it unparseable.
+        core.debug(`Failed to query NuGet for ${packageRef}: ${err}`);
+        return false;
+    }
 }
 async function installGoPackageVersion(cwd, opts) {
     const majorVersion = parseInt(opts.providerVersion.split('.')[0], 10);
