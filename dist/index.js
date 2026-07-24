@@ -130482,6 +130482,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.verifyRelease = verifyRelease;
+exports.retryUntil = retryUntil;
 exports.isNugetPackageAvailable = isNugetPackageAvailable;
 const core = __importStar(__nccwpck_require__(37484));
 const automation_1 = __nccwpck_require__(17965);
@@ -130591,21 +130592,25 @@ async function installPipPackageVersion(cwd, opts) {
     if (shelljs_1.default.exec(uninstallCmd, { cwd }).code !== 0) {
         core.debug(`Failed to uninstall ${packageRef}`);
     }
-    // Wait for up to 15 minutes for the package to be available on PyPI
-    const startTime = Date.now();
-    while (!isPypiPackageAvailable(cwd, pip, packageRef, opts.packageVersion)) {
-        core.debug(`Waiting for ${packageRef}==${opts.packageVersion} to be available on PyPI`);
-        if (Date.now() - startTime > 15 * 60 * 1000) {
-            throw new Error(`Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on PyPI`);
-        }
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds
-    }
     const packageVersionRef = `${packageRef}==${opts.packageVersion}`;
     const installCmd = `${pip} install ${packageVersionRef}`;
     core.debug(`Installing pip package: ${installCmd}`);
-    if (shelljs_1.default.exec(installCmd, { cwd, fatal: true }).code !== 0) {
-        throw new Error(`Failed to install ${packageVersionRef}`);
-    }
+    // Retry the install itself for up to 15 minutes, since a freshly published
+    // version takes a while to become installable. The availability probe is
+    // only a cheap pre-check that avoids a doomed install attempt; the install
+    // is the real gate, so the probe could be dropped without changing outcomes.
+    await retryUntil(`${packageVersionRef} to install from PyPI`, { timeoutMs: 15 * 60 * 1000 }, () => {
+        if (!isPypiPackageAvailable(cwd, pip, packageRef, opts.packageVersion)) {
+            return false;
+        }
+        const installExec = shelljs_1.default.exec(installCmd, { cwd });
+        if (installExec.code === 0) {
+            return true;
+        }
+        const failureDetail = `Failed to install ${packageVersionRef}: \n${installExec.stderr}\n${installExec.stdout}`;
+        core.debug(failureDetail);
+        return { done: false, failureDetail };
+    });
     const installReqCmd = `${pip} install -r requirements.txt`;
     core.debug(`Installing requirements.txt: installReqCmd`);
     if (shelljs_1.default.exec(installReqCmd, { cwd, fatal: true }).code !== 0) {
@@ -130627,22 +130632,25 @@ async function installDotnetPackageVersion(cwd, opts) {
     if (removeExec.code !== 0) {
         core.debug(`Failed to remove ${packageRef}: \n${removeExec.stderr}\n${removeExec.stdout}`);
     }
-    // Wait for up to 1 hour for the package to be available on NuGet
-    const startTime = Date.now();
-    while (!(await isNugetPackageAvailable(packageRef, opts.packageVersion))) {
-        core.debug(`Waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`);
-        if (Date.now() - startTime > 60 * 60 * 1000) {
-            throw new Error(`Timed out waiting for ${packageRef}==${opts.packageVersion} to be available on NuGet`);
-        }
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 seconds
-    }
     const packageVersionRef = `${packageRef} --version "[${opts.packageVersion}]"`;
     const addCmd = `dotnet add package ${packageVersionRef}`;
     core.debug(`Installing dotnet package: ${addCmd}`);
-    const addExec = shelljs_1.default.exec(addCmd, { cwd, fatal: true });
-    if (addExec.code !== 0) {
-        throw new Error(`Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`);
-    }
+    // Retry the install itself for up to an hour, since a freshly published
+    // version takes a while to become installable. The availability probe is
+    // only a cheap pre-check that avoids a doomed install attempt; the install
+    // is the real gate, so the probe could be dropped without changing outcomes.
+    await retryUntil(`${packageRef}==${opts.packageVersion} to install from NuGet`, { timeoutMs: 60 * 60 * 1000 }, async () => {
+        if (!(await isNugetPackageAvailable(packageRef, opts.packageVersion))) {
+            return false;
+        }
+        const addExec = shelljs_1.default.exec(addCmd, { cwd });
+        if (addExec.code === 0) {
+            return true;
+        }
+        const failureDetail = `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`;
+        core.debug(failureDetail);
+        return { done: false, failureDetail };
+    });
     // Recursively delete the folder ${cwd}/obj to make sure obj/project.assets.json is deleted. This is a workaround for
     // .NET version selection, sometimes on Mac OS and Windows runners when .NET 8 and 9 are available together, `dotnet
     // add package` uses 9 but `pulumi preview` uses 8 and fails to read obj/project.assets.json that references 9. In
@@ -130656,6 +130664,21 @@ async function installDotnetPackageVersion(cwd, opts) {
     }
     catch (err) {
         core.debug(`Failed to remove obj folder: ${err}`);
+    }
+}
+async function retryUntil(description, opts, attempt) {
+    const startTime = Date.now();
+    for (;;) {
+        const outcome = await attempt();
+        if (typeof outcome === 'boolean' ? outcome : outcome.done) {
+            return;
+        }
+        core.debug(`Waiting for ${description}`);
+        if (Date.now() - startTime > opts.timeoutMs) {
+            const detail = typeof outcome === 'boolean' ? undefined : outcome.failureDetail;
+            throw new Error(`Timed out waiting for ${description}${detail ? `\n${detail}` : ''}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, opts.intervalMs ?? 5000));
     }
 }
 async function isNugetPackageAvailable(packageRef, packageVersion) {
