@@ -172,10 +172,9 @@ async function installPipPackageVersion(
       if (installExec.code === 0) {
         return true
       }
-      core.debug(
-        `Failed to install ${packageVersionRef}: \n${installExec.stderr}\n${installExec.stdout}`
-      )
-      return false
+      const failureDetail = `Failed to install ${packageVersionRef}: \n${installExec.stderr}\n${installExec.stdout}`
+      core.debug(failureDetail)
+      return { done: false, failureDetail }
     }
   )
 
@@ -221,7 +220,7 @@ async function installDotnetPackageVersion(
   // only a cheap pre-check that avoids a doomed install attempt; the install
   // is the real gate, so the probe could be dropped without changing outcomes.
   await retryUntil(
-    `${packageVersionRef} to install from NuGet`,
+    `${packageRef}==${opts.packageVersion} to install from NuGet`,
     { timeoutMs: 60 * 60 * 1000 },
     async () => {
       if (!(await isNugetPackageAvailable(packageRef, opts.packageVersion))) {
@@ -231,10 +230,9 @@ async function installDotnetPackageVersion(
       if (addExec.code === 0) {
         return true
       }
-      core.debug(
-        `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
-      )
-      return false
+      const failureDetail = `Failed to install ${packageVersionRef}: \n${addExec.stderr}\n${addExec.stdout}`
+      core.debug(failureDetail)
+      return { done: false, failureDetail }
     }
   )
 
@@ -253,16 +251,33 @@ async function installDotnetPackageVersion(
   }
 }
 
+/**
+ * Outcome of a single {@link retryUntil} attempt. A bare boolean is shorthand
+ * for `{ done: <boolean> }`; the object form lets a failing attempt carry a
+ * human-readable detail (e.g. a command's stderr) that is appended to the
+ * timeout error, so the real cause is visible in the default job log rather
+ * than only under core.debug.
+ */
+type RetryAttempt = boolean | { done: boolean; failureDetail?: string }
+
 export async function retryUntil(
   description: string,
   opts: { timeoutMs: number; intervalMs?: number },
-  attempt: () => boolean | Promise<boolean>
+  attempt: () => RetryAttempt | Promise<RetryAttempt>
 ): Promise<void> {
   const startTime = Date.now()
-  while (!(await attempt())) {
+  for (;;) {
+    const outcome = await attempt()
+    if (typeof outcome === 'boolean' ? outcome : outcome.done) {
+      return
+    }
     core.debug(`Waiting for ${description}`)
     if (Date.now() - startTime > opts.timeoutMs) {
-      throw new Error(`Timed out waiting for ${description}`)
+      const detail =
+        typeof outcome === 'boolean' ? undefined : outcome.failureDetail
+      throw new Error(
+        `Timed out waiting for ${description}${detail ? `\n${detail}` : ''}`
+      )
     }
     await new Promise(resolve => setTimeout(resolve, opts.intervalMs ?? 5000))
   }

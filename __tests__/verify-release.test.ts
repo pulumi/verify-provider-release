@@ -25,6 +25,45 @@ describe('retryUntil', () => {
       retryUntil('the thing', { timeoutMs: 0, intervalMs: 0 }, attempt)
     ).rejects.toThrow('Timed out waiting for the thing')
   })
+
+  it('retries a failing attempt that reports detail until it succeeds', async () => {
+    let attempts = 0
+    // Mirrors the install call sites: the probe passes but the install fails a
+    // couple of times (reporting stderr) before finally succeeding.
+    const attempt = (): { done: boolean; failureDetail?: string } => {
+      attempts++
+      return attempts < 3
+        ? {
+            done: false,
+            failureDetail: `install failed on attempt ${attempts}`
+          }
+        : { done: true }
+    }
+
+    await retryUntil('the thing', { timeoutMs: 60_000, intervalMs: 0 }, attempt)
+
+    expect(attempts).toBe(3)
+  })
+
+  it('surfaces the last failure detail in the timeout error', async () => {
+    const attempt = (): { done: boolean; failureDetail?: string } => ({
+      done: false,
+      failureDetail: 'ERROR: could not install foo==1.2.3\nboom'
+    })
+
+    await expect(
+      retryUntil(
+        'foo==1.2.3 to install from PyPI',
+        {
+          timeoutMs: 0,
+          intervalMs: 0
+        },
+        attempt
+      )
+    ).rejects.toThrow(
+      'Timed out waiting for foo==1.2.3 to install from PyPI\nERROR: could not install foo==1.2.3\nboom'
+    )
+  })
 })
 
 describe('isNugetPackageAvailable', () => {
